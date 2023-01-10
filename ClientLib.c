@@ -29,7 +29,7 @@ int isAlp_toLower(char *str) {
   return cnt;
 }
 
-void readAllList(char **allList){
+void readWords(char **words){
   FILE *fp;
   char buf[6];
   int i = 0;
@@ -38,8 +38,8 @@ void readAllList(char **allList){
   for (int i = 0; i < WORDS; i++){
     fseek(fp, (BUFSIZE + 1) * i, SEEK_SET);
     fgets(buf, BUFSIZE + 1, fp);
-    allList[i] = (char *)malloc(sizeof(char) * BUFSIZE);
-    strncpy(allList[i], buf, BUFSIZE);
+    words[i] = (char *)malloc(sizeof(char) * BUFSIZE);
+    strncpy(words[i], buf, BUFSIZE);
   }
   fclose(fp);
 }
@@ -49,9 +49,8 @@ void gamePlay(int sock) {
   char sendBuffer[BUFSIZE], recvBuffer[BUFSIZE];
   int AnsSize, sendMsgSize, recvMsgSize;
   int hit = 0;
-  char **allList = (char **)malloc(sizeof(char *) * WORDS);
-  readAllList(allList);
-
+  char **words = (char **)malloc(sizeof(char *) * WORDS);
+  readWords(words);
   while (1) {
     printf("\n    ==========================================\n\n");
     printf("        [trial %d] Enter a word: ", trial);
@@ -63,7 +62,7 @@ void gamePlay(int sock) {
       close(sock);
       exit(0);
     } else if (isAlp_toLower(sendBuffer) != 0) {
-      printf("\n        Please enter ALPHABETS.\n");
+      printf("\n        Please enter ALPHABETs.\n");
       trial--;
       continue;
     } else if (AnsSize != 5) {
@@ -73,7 +72,7 @@ void gamePlay(int sock) {
     } else {
       // check if word is in list
       for (int i = 0; i < WORDS; i++) {
-        if (strncmp(sendBuffer, allList[i], 5) == 0) {
+        if (strncmp(sendBuffer, words[i], 5) == 0) {
           hit = 1;
           break;
         }
@@ -139,8 +138,8 @@ void gameIntro(int sock){
       printf("    You can select how many tries you want (enter a number) : ");
       while(1){
         scanf("%s", &ans);
-        if (strtoll(ans, NULL, 10) == 0) {
-          printf("    Please input a number : ");
+        if (strtoll(ans, NULL, 10) > 9 || strtoll(ans, NULL, 10) < 1) {
+          printf("    Please input a number (1 to 9) : ");
           continue;
         }
         break;

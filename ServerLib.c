@@ -4,7 +4,7 @@
 #include <string.h>     /* for memset() */
 #include <sys/socket.h> /* for accept() */
 #include <unistd.h>     /* for close() */
-#include <time.h>
+#include <sys/time.h>
 #include "ServerLib.h"
 
 #define MAXPENDING 5  /* Maximum outstanding connection requests */
@@ -57,7 +57,7 @@ int AcceptConnection(int servSock) {
   return clntSock;
 }
 
-void gameMaster(int sock, char *ans) {
+void gameMaster(int sock, char *ans, int pid) {
   int trial = 1;
   char recvBuffer[BUFSIZE], sendBuffer[BUFSIZE], copyAns[BUFSIZE];
   int recvMsgSize, sendMsgSize;
@@ -65,15 +65,13 @@ void gameMaster(int sock, char *ans) {
     DieWithError("recv() failed");
   int maxTrial = strtol(recvBuffer, NULL, 10);
   while (trial <= maxTrial) {
-    printf("trial: %d\n", trial);
+    printf("[%d] trial: %d\n", pid, trial);
     if ((recvMsgSize = recv(sock, recvBuffer, BUFSIZE, 0)) < 0)
       DieWithError("recv() failed");
     if (recvMsgSize == 0) {
       printf("connection closed by client\n");
       exit(0);
     }
-    printf("client try: %s\n", recvBuffer);
-
     // judge hit & blow
     strncpy(copyAns, ans, BUFSIZE);
     for (int i = 0; i < BUFSIZE; i++) sendBuffer[i] = '_';
@@ -97,25 +95,22 @@ void gameMaster(int sock, char *ans) {
       char copyBuffer[BUFSIZE];
       strncpy(copyBuffer, sendBuffer, BUFSIZE);
       strncpy(sendBuffer, "_LOSE", BUFSIZE);
-      printf("sendBuffer: %s\n", sendBuffer);
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
       if (sendMsgSize = send(sock, copyBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
       if (sendMsgSize = send(sock, ans, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
-      printf("GAME END\n");
+      printf("[%d] GAME END (LOSE)\n", pid);
       close(sock);
       exit(0);
     }else if(strncmp(sendBuffer, "HHHHH", BUFSIZE) == 0){ // win
-      printf("sendBuffer: %s\n", sendBuffer);
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
-      printf("GAME END\n");
+      printf("[%d] GAME END (WIN)\n", pid);
       close(sock);
       exit(0);
     }else{
-      printf("sendBuffer: %s\n", sendBuffer);
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
       trial++;
@@ -125,7 +120,9 @@ void gameMaster(int sock, char *ans) {
 
 void selectAns(char *ans){
   // select answer word from wordlist file: ans.txt
-  srand((unsigned)time(NULL));
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  srand(tv.tv_sec + tv.tv_usec);
   FILE *fp;
   char buff[BUFSIZE + 1];
   int no = rand() % W0RDS + 1;
@@ -139,12 +136,13 @@ void selectAns(char *ans){
 }
 
 void ProcessMain(int servSock, char *ans) {
-  int clntSock;
+  int clntSock, pid;
   while (1) {
     printf("waiting connection...\n");
     if ((clntSock = AcceptConnection(servSock)) < 0)
       DieWithError("failed to accept connection");
-    printf("with child process: %d\n", (unsigned int)getpid());
-    gameMaster(clntSock, ans);
+    pid = getpid();
+    printf("with child process: %d\n", pid);
+    gameMaster(clntSock, ans, pid);
   }
 }
