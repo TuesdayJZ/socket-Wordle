@@ -5,7 +5,10 @@
 #include <sys/socket.h> /* for socket(), bind(), and connect() */
 #include <unistd.h>     /* for close() */
 
+#define MAXPENDING 5 /* Maximum outstanding connection requests */
+#define BUFSIZE 5    /* Size of receive buffer */
+
 void DieWithError(char *errorMessage); /* Error handling function */
-int isAlp_toLower(char *str); /* Check if string is alphabet and if its upper, change to lower */
-void gamePlay(int sock);
-void gameIntro(int sock);
+int isAlp_toLower(char *str);          /* Check if string is alphabet and if its upper, change to lower */
+void gamePlay(int sock);               /* game loop */
+void gameIntro(int sock);              /* Wordle introducton and select how many trial */

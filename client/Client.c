@@ -26,10 +26,10 @@ int main(int argc, char *argv[]){
   ServAddr.sin_port        = htons(ServPort);   /* Server port */
 
   /* Establish the connection to the server */
-  printf("    trying to connect to the game server...\n");
+  printf("\n    trying to connect to the game server...\n");
   if (connect(sock, (struct sockaddr *) &ServAddr, sizeof(ServAddr)) < 0)
     DieWithError("connect() failed");
-  printf("    connected!\n");
+  printf("    connected!\n\n");
   gameIntro(sock);
   gamePlay(sock);
   close(sock);

@@ -10,12 +10,13 @@ int main(int argc, char *argv[]) {
   int servSock; /* Socket descriptor for server */
   int clntSock; /* Socket descriptor for client */
   pid_t processID;
-  int processCount, processLimit;
-  char wordle[BUFSIZE];
+  int processCount, processLimit; /* Number of processes */
+  char wordle[BUFSIZE];          /* Wordle */
   char **words = (char **)malloc(sizeof(char *) * WORDS);
-  int d;
+  int d;                       /* for multi player mode (players can play in different Wordle) */
 
-  if (argc > 4 || argc < 2) /* Test for correct number of arguments */ {
+  // argument check
+  if (argc > 4 || argc < 2) {
     fprintf(stderr, "Usage: %s <Server Port> (<Number of Players> <-d>)\n",
             argv[0]);
     exit(1);
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     if (argc == 4) {
-      if (strcmp(argv[3], "-d") != 0) {
+      if (strcmp(argv[3], "-d") != 0) { // in multi player mode you can set option by adding "-d"
         fprintf(stderr,
                 "Usage: %s <Server Port> (<Number of Players> <-d>)\nYou can "
                 "play with different Wordle by -d.\n",
@@ -55,43 +56,45 @@ int main(int argc, char *argv[]) {
     DieWithError("failed to create server socket");
 
   if (argc > 3 && d == 0) {
-    printf("\nYou can play %d players with same Wordle.\n", processLimit);
+    printf("\n%d players with the same Wordle.\n", processLimit);
   } else if (argc > 3 && d == 1) {
-    printf("\nYou can play %d players with different Wordle.\n", processLimit);
+    printf("\n%d players with different Wordles.\n", processLimit);
   }
   printf("The server is ready to accept connections.\n\n");
 
   readWords(words);
 
+  // single player mode
   if (processLimit == 1) {
     selectWordle(wordle, words);
     printf("Wordle : %s\n\n", wordle);
-    ProcessMain(servSock, wordle);
+    ProcessMain(servSock, wordle, words);
     close(servSock);
     exit(EXIT_SUCCESS);
   }
 
-  if (d == 0) {
+  // multi player mode
+  if (d == 0) { // players play with the same Wordle
     selectWordle(wordle, words);
     printf("Wordle : %s\n\n", wordle);
     for (processCount = 0; processCount < processLimit; processCount++) {
       if ((processID = fork()) < 0)
         DieWithError("fork() failed");
-      else if (processID == 0) {  // child
-        ProcessMain(servSock, wordle);
+      else if (processID == 0) { // child process
+        ProcessMain(servSock, wordle, words);
         close(servSock);
         exit(EXIT_SUCCESS);
       }
     }
     multi_wait(processCount); // wait for all child processes
     exit(EXIT_SUCCESS);
-  } else if (d == 1) {
+  } else if (d == 1) { // players play with different Wordles
     for (processCount = 0; processCount < processLimit; processCount++) {
       if ((processID = fork()) < 0)
         DieWithError("fork() failed");
-      else if (processID == 0) {  // child
+      else if (processID == 0) { // child process
         selectWordle(wordle, words);
-        ProcessMain(servSock, wordle);
+        ProcessMain(servSock, wordle, words);
         close(servSock);
         exit(EXIT_SUCCESS);
       }

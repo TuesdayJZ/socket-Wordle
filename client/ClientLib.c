@@ -1,8 +1,5 @@
 #include "ClientLib.h"
 
-#define MAXPENDING 5 /* Maximum outstanding connection requests */
-#define BUFSIZE 5    /* Size of receive buffer */
-
 void DieWithError(char *errorMessage) {
   perror(errorMessage);
   exit(EXIT_FAILURE);
@@ -54,7 +51,7 @@ void gamePlay(int sock) {
     if (recvMsgSize = recv(sock, recvBuffer, 5, 0) < 0)
       DieWithError("recv() failed");
     if (strncmp(recvBuffer, "00000", 5) == 0) {
-      printf("\n        It's not a word, try again.\n");
+      printf("\n        It's NOT a WORD, try again.\n");
       trial--;
       continue;
     }
