@@ -12,6 +12,7 @@ void DieWithError(char *errorMessage);  /* Error handling function */
 int CreateServerSocket(unsigned short port); /* Create  server socket */
 int AcceptConnection(int servSock);  /* Accept connection request */
 void gameMaster(int sock, char *ans, int pid); /* Game master */
-void selectAns(char *ans);
+void selectWordle(char *wordle, char **words); /* Select wordle */
+void readWords(char **words); /* Read words from file */
 void ProcessMain(int servSock, char *ans);
 void multi_wait(int processCount);

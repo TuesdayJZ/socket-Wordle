@@ -3,16 +3,16 @@
 #include "ClientLib.h"
 
 int main(int argc, char *argv[]){
-  int sock;                        /* Socket descriptor */
+  int sock;                    /* Socket descriptor */
   struct sockaddr_in ServAddr; /* server address */
   unsigned short ServPort;     /* server port */
-  char *servIP;                    /* Server IP address (dotted quad) */
+  char *servIP;                /* Server IP address (dotted quad) */
 
   if (argc != 3) {
     fprintf(stderr, "Usage: %s <Server IP> <Port>\n", argv[0]);
     exit(1);
   }
-  servIP = argv[1];             /* First arg: server IP address (dotted quad) */
+  servIP = argv[1];         /* First arg: server IP address (dotted quad) */
   ServPort = atoi(argv[2]); /* Second arg: server port */
 
   /* Create a reliable, stream socket using TCP */
@@ -20,10 +20,10 @@ int main(int argc, char *argv[]){
     DieWithError("socket() failed");
 
   /* Construct the server address structure */
-  memset(&ServAddr, 0, sizeof(ServAddr));     /* Zero out structure */
-  ServAddr.sin_family      = AF_INET;             /* Internet address family */
-  ServAddr.sin_addr.s_addr = inet_addr(servIP);   /* Server IP address */
-  ServAddr.sin_port        = htons(ServPort); /* Server port */
+  memset(&ServAddr, 0, sizeof(ServAddr));       /* Zero out structure */
+  ServAddr.sin_family      = AF_INET;           /* Internet address family */
+  ServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
+  ServAddr.sin_port        = htons(ServPort);   /* Server port */
 
   /* Establish the connection to the server */
   printf("    trying to connect to the game server...\n");

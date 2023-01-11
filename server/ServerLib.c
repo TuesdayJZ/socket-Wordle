@@ -2,7 +2,7 @@
 
 #define MAXPENDING 5  /* Maximum outstanding connection requests */
 #define BUFSIZE 5 /* Size of receive buffer */
-#define W0RDS 14855
+#define WORDS 14855
 
 void DieWithError(char *errorMessage) {
   perror(errorMessage);
@@ -10,7 +10,7 @@ void DieWithError(char *errorMessage) {
 }
 
 int CreateServerSocket(unsigned short port) {
-  int sock;                        /* socket to create */
+  int sock;                    /* Socket descriptor for server */
   struct sockaddr_in ServAddr; /* Local address */
   char ipstr[INET_ADDRSTRLEN];
 
@@ -55,6 +55,8 @@ void gameMaster(int sock, char *wordle, int pid) {
   int trial = 1;
   char recvBuffer[BUFSIZE], sendBuffer[BUFSIZE], copywordle[BUFSIZE];
   int recvMsgSize, sendMsgSize;
+  char **words = (char **)malloc(sizeof(char *) * WORDS);
+  readWords(words);
   if ((recvMsgSize = recv(sock, recvBuffer, BUFSIZE, 0)) < 0)
     DieWithError("recv() failed");
   int maxTrial = strtol(recvBuffer, NULL, 10);
@@ -71,8 +73,19 @@ void gameMaster(int sock, char *wordle, int pid) {
       exit(EXIT_SUCCESS);
     }
     printf("[%d] (trial %d) received: %.5s\n", pid,trial, recvBuffer);
-    // judge hit & blow
-    strncpy(copywordle, wordle, BUFSIZE);
+
+    // check if it's a word
+    for (int i = 0; i < WORDS; i++){
+      if (strncmp(recvBuffer, words[i], BUFSIZE) == 0) {
+        strncpy(sendBuffer, "11111", BUFSIZE);
+        break;
+      }
+      strncpy(sendBuffer, "00000", BUFSIZE);
+    }
+
+    if(strncmp(sendBuffer, "11111", BUFSIZE) == 0){
+      // judge hit & blow
+      strncpy(copywordle, wordle, BUFSIZE);
     for (int i = 0; i < BUFSIZE; i++) sendBuffer[i] = '_';
     for (int i = 0; i < BUFSIZE; i++) {
       if (recvBuffer[i] == copywordle[i]) {
@@ -88,28 +101,37 @@ void gameMaster(int sock, char *wordle, int pid) {
         }
       }
     }
+    }
 
-    // send hit & blow
-    if(trial == maxTrial && strncmp(sendBuffer, "#####", BUFSIZE) != 0){ // lose
-      char copyBuffer[BUFSIZE];
-      strncpy(copyBuffer, sendBuffer, BUFSIZE);
-      strncpy(sendBuffer, "_LOSE", BUFSIZE);
+    // send "00000" if it's not a word
+    if (strncmp(sendBuffer, "00000", BUFSIZE) == 0) {
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
-      if (sendMsgSize = send(sock, copyBuffer, BUFSIZE, 0) < 0)
+      continue;
+    }
+
+    // if it's a word, send hit & blow
+    else if (trial == maxTrial &&
+             strncmp(sendBuffer, "#####", BUFSIZE) != 0) {  // lose
+      char copyBuffer[BUFSIZE];
+      strncpy(copyBuffer, sendBuffer, BUFSIZE); // save hit & blow
+      strncpy(sendBuffer, "_LOSE", BUFSIZE);  // send _LOSE
+      if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
-      if (sendMsgSize = send(sock, wordle, BUFSIZE, 0) < 0)
+      if (sendMsgSize = send(sock, copyBuffer, BUFSIZE, 0) < 0) // send hit & blow
+        DieWithError("send() failed");
+      if (sendMsgSize = send(sock, wordle, BUFSIZE, 0) < 0) // send wordle
         DieWithError("send() failed");
       printf("[%d] GAME END (LOSE)\n", pid);
       close(sock);
       exit(EXIT_SUCCESS);
-    }else if(strncmp(sendBuffer, "#####", BUFSIZE) == 0){ // win
-      if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
+    } else if (strncmp(sendBuffer, "#####", BUFSIZE) == 0) {  // win
+      if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0) // send hit & blow
         DieWithError("send() failed");
       printf("[%d] GAME END (WIN)\n", pid);
       close(sock);
       exit(EXIT_SUCCESS);
-    }else{
+    } else { // continue game
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
       trial++;
@@ -117,20 +139,26 @@ void gameMaster(int sock, char *wordle, int pid) {
   }
 }
 
-void selectWordle(char *wordle){
-  // select wordle from file: words.txt
+void selectWordle(char *wordle, char **words) {
+  // select wordle
   struct timeval tv;
   gettimeofday(&tv, NULL);
   srand(tv.tv_sec + tv.tv_usec);
+  int no = rand() % WORDS;
+  strncpy(wordle, words[no], BUFSIZE);
+}
+
+void readWords(char **words) {
   FILE *fp;
-  char buff[BUFSIZE + 1];
-  int no = rand() % W0RDS + 1;
-  fp = fopen("words.txt", "r");
-  if (!fp)
-    DieWithError("fopen failed");
-  fseek(fp, no * (BUFSIZE + 1), SEEK_SET);
-  fgets(buff, BUFSIZE + 1, fp);
-  strncpy(wordle, buff, BUFSIZE);
+  char buf[6];
+  int i = 0;
+  if ((fp = fopen("words.txt", "r")) == NULL) exit(1);
+  for (int i = 0; i < WORDS; i++) {
+    fseek(fp, (BUFSIZE + 1) * i, SEEK_SET);
+    fgets(buf, BUFSIZE + 1, fp);
+    words[i] = (char *)malloc(sizeof(char) * BUFSIZE);
+    strncpy(words[i], buf, BUFSIZE);
+  }
   fclose(fp);
 }
 

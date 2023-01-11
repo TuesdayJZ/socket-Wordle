@@ -4,6 +4,7 @@
 
 #define BUFSIZE 5
 #define MAXPLAYERS 10
+#define WORDS 14855
 
 int main(int argc, char *argv[]) {
   int servSock; /* Socket descriptor for server */
@@ -11,6 +12,7 @@ int main(int argc, char *argv[]) {
   pid_t processID;
   int processCount, processLimit;
   char wordle[BUFSIZE];
+  char **words = (char **)malloc(sizeof(char *) * WORDS);
   int d;
 
   if (argc > 4 || argc < 2) /* Test for correct number of arguments */ {
@@ -59,8 +61,10 @@ int main(int argc, char *argv[]) {
   }
   printf("The server is ready to accept connections.\n\n");
 
+  readWords(words);
+
   if (processLimit == 1) {
-    selectWordle(wordle);
+    selectWordle(wordle, words);
     printf("Wordle : %s\n\n", wordle);
     ProcessMain(servSock, wordle);
     close(servSock);
@@ -68,7 +72,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (d == 0) {
-    selectWordle(wordle);
+    selectWordle(wordle, words);
     printf("Wordle : %s\n\n", wordle);
     for (processCount = 0; processCount < processLimit; processCount++) {
       if ((processID = fork()) < 0)
@@ -86,7 +90,7 @@ int main(int argc, char *argv[]) {
       if ((processID = fork()) < 0)
         DieWithError("fork() failed");
       else if (processID == 0) {  // child
-        selectWordle(wordle);
+        selectWordle(wordle, words);
         ProcessMain(servSock, wordle);
         close(servSock);
         exit(EXIT_SUCCESS);

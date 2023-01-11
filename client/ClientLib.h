@@ -6,7 +6,6 @@
 #include <unistd.h>     /* for close() */
 
 void DieWithError(char *errorMessage); /* Error handling function */
-int isAlp_toLower(char *str);
-void readWords(char **words);
+int isAlp_toLower(char *str); /* Check if string is alphabet and if its upper, change to lower */
 void gamePlay(int sock);
 void gameIntro(int sock);
