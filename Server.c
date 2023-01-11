@@ -40,12 +40,12 @@ int main(int argc, char *argv[]) {
 
   if (processLimit == 1) {
     selectAns(ans);
-    printf("ans: %s\n", ans);
+    printf("Wordle : %s\n\n", ans);
     ProcessMain(servSock, ans);
     exit(EXIT_SUCCESS);
   }
 
-  printf("Do you want to play with the same answer? [Y/n] : ");
+  printf("Do you want to play with the same Wordle? [Y/n] : ");
 
   while (1) {
     scanf("%s", ans);
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
   }
   if (strcmp(ans, "Y") == 0 || strcmp(ans, "y") == 0) {
     selectAns(ans);
-    printf("ans: %s\n", ans);
+    printf("Wordle : %s\n\n", ans);
     for (processCount = 0; processCount < processLimit; processCount++) {
       if ((processID = fork()) < 0)
         DieWithError("fork() failed");
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
         DieWithError("fork() failed");
       else if (processID == 0) {  // child
         selectAns(ans);
-        printf("ans: %s\n", ans);
+        printf("[player %d] Wordle : %s\n", processCount + 1, ans);
         ProcessMain(servSock, ans);
         exit(EXIT_SUCCESS);
       }

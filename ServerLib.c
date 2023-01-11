@@ -58,7 +58,6 @@ void gameMaster(int sock, char *ans, int pid) {
     DieWithError("recv() failed");
   int maxTrial = strtol(recvBuffer, NULL, 10);
   while (trial <= maxTrial) {
-    printf("[%d] trial: %d\n", pid, trial);
     if ((recvMsgSize = recv(sock, recvBuffer, BUFSIZE, 0)) < 0)
       DieWithError("recv() failed");
     if (recvMsgSize == 0) {
@@ -70,27 +69,27 @@ void gameMaster(int sock, char *ans, int pid) {
       close(sock);
       exit(EXIT_SUCCESS);
     }
-    printf("[%d] recv: %s\n", pid, recvBuffer);
+    printf("[%d] (trial %d) received: %.5s\n", pid,trial, recvBuffer);
     // judge hit & blow
     strncpy(copyAns, ans, BUFSIZE);
     for (int i = 0; i < BUFSIZE; i++) sendBuffer[i] = '_';
     for (int i = 0; i < BUFSIZE; i++) {
       if (recvBuffer[i] == copyAns[i]) {
-        sendBuffer[i] = 'H';
+        sendBuffer[i] = '#';
         copyAns[i] = 'D'; //done
       }
     }
     for (int i = 0; i < BUFSIZE; i++) {
       for (int j = 0; j < BUFSIZE; j++) {
         if (recvBuffer[i] == copyAns[j]) {
-          sendBuffer[i] = 'B';
+          sendBuffer[i] = '/';
           copyAns[j] = 'D'; //done
         }
       }
     }
 
     // send hit & blow
-    if(trial == maxTrial && strncmp(sendBuffer, "HHHHH", BUFSIZE) != 0){ // lose
+    if(trial == maxTrial && strncmp(sendBuffer, "#####", BUFSIZE) != 0){ // lose
       char copyBuffer[BUFSIZE];
       strncpy(copyBuffer, sendBuffer, BUFSIZE);
       strncpy(sendBuffer, "_LOSE", BUFSIZE);
@@ -103,7 +102,7 @@ void gameMaster(int sock, char *ans, int pid) {
       printf("[%d] GAME END (LOSE)\n", pid);
       close(sock);
       exit(EXIT_SUCCESS);
-    }else if(strncmp(sendBuffer, "HHHHH", BUFSIZE) == 0){ // win
+    }else if(strncmp(sendBuffer, "#####", BUFSIZE) == 0){ // win
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
       printf("[%d] GAME END (WIN)\n", pid);
@@ -137,11 +136,11 @@ void selectAns(char *ans){
 void ProcessMain(int servSock, char *ans) {
   int clntSock, pid;
   while (1) {
-    printf("waiting connection...\n");
+    printf("waiting connection ...\n");
     if ((clntSock = AcceptConnection(servSock)) < 0)
       DieWithError("failed to accept connection");
     pid = getpid();
-    printf("with process: %d\n", pid);
+    printf("[%d] accepted.\n", pid);
     gameMaster(clntSock, ans, pid);
   }
 }
@@ -157,6 +156,8 @@ void multi_wait(int processCount){
         continue;
       DieWithError("wait error");
     }
-    printf("[%d] terminated.\nremaining process: %d\n", pid, --processCount);
+    --processCount;
+    printf("[%d] terminated.\n\n", pid);
+    if (processCount == 0) printf("All process terminated.\n");
   }
 }
