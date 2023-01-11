@@ -12,6 +12,7 @@ void DieWithError(char *errorMessage) {
 int CreateServerSocket(unsigned short port) {
   int sock;                        /* socket to create */
   struct sockaddr_in ServAddr; /* Local address */
+  char ipstr[INET_ADDRSTRLEN];
 
   /* Create socket for incoming connections */
   if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
@@ -27,7 +28,7 @@ int CreateServerSocket(unsigned short port) {
   if (bind(sock, (struct sockaddr *)&ServAddr, sizeof(ServAddr)) < 0)
     DieWithError("bind() failed");
 
-  printf("This Server's IP address: %s\n", inet_ntoa(ServAddr.sin_addr));
+  printf("This Server's IP address: %s\n", inet_ntop(ServAddr.sin_family, &ServAddr.sin_addr, ipstr, sizeof(ipstr)));
 
   /* Mark the socket so it will listen for incoming connections */
   if (listen(sock, MAXPENDING) < 0) DieWithError("listen() failed");
@@ -50,9 +51,9 @@ int AcceptConnection(int servSock) {
   return clntSock;
 }
 
-void gameMaster(int sock, char *ans, int pid) {
+void gameMaster(int sock, char *wordle, int pid) {
   int trial = 1;
-  char recvBuffer[BUFSIZE], sendBuffer[BUFSIZE], copyAns[BUFSIZE];
+  char recvBuffer[BUFSIZE], sendBuffer[BUFSIZE], copywordle[BUFSIZE];
   int recvMsgSize, sendMsgSize;
   if ((recvMsgSize = recv(sock, recvBuffer, BUFSIZE, 0)) < 0)
     DieWithError("recv() failed");
@@ -71,19 +72,19 @@ void gameMaster(int sock, char *ans, int pid) {
     }
     printf("[%d] (trial %d) received: %.5s\n", pid,trial, recvBuffer);
     // judge hit & blow
-    strncpy(copyAns, ans, BUFSIZE);
+    strncpy(copywordle, wordle, BUFSIZE);
     for (int i = 0; i < BUFSIZE; i++) sendBuffer[i] = '_';
     for (int i = 0; i < BUFSIZE; i++) {
-      if (recvBuffer[i] == copyAns[i]) {
+      if (recvBuffer[i] == copywordle[i]) {
         sendBuffer[i] = '#';
-        copyAns[i] = 'D'; //done
+        copywordle[i] = '.'; //done
       }
     }
     for (int i = 0; i < BUFSIZE; i++) {
       for (int j = 0; j < BUFSIZE; j++) {
-        if (recvBuffer[i] == copyAns[j]) {
+        if (recvBuffer[i] == copywordle[j]) {
           sendBuffer[i] = '/';
-          copyAns[j] = 'D'; //done
+          copywordle[j] = '.'; //done
         }
       }
     }
@@ -97,7 +98,7 @@ void gameMaster(int sock, char *ans, int pid) {
         DieWithError("send() failed");
       if (sendMsgSize = send(sock, copyBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
-      if (sendMsgSize = send(sock, ans, BUFSIZE, 0) < 0)
+      if (sendMsgSize = send(sock, wordle, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
       printf("[%d] GAME END (LOSE)\n", pid);
       close(sock);
@@ -116,8 +117,8 @@ void gameMaster(int sock, char *ans, int pid) {
   }
 }
 
-void selectAns(char *ans){
-  // select answer word from wordlist file: ans.txt
+void selectWordle(char *wordle){
+  // select wordle from file: words.txt
   struct timeval tv;
   gettimeofday(&tv, NULL);
   srand(tv.tv_sec + tv.tv_usec);
@@ -129,11 +130,11 @@ void selectAns(char *ans){
     DieWithError("fopen failed");
   fseek(fp, no * (BUFSIZE + 1), SEEK_SET);
   fgets(buff, BUFSIZE + 1, fp);
-  strncpy(ans, buff, BUFSIZE);
+  strncpy(wordle, buff, BUFSIZE);
   fclose(fp);
 }
 
-void ProcessMain(int servSock, char *ans) {
+void ProcessMain(int servSock, char *wordle) {
   int clntSock, pid;
   while (1) {
     printf("waiting connection ...\n");
@@ -141,7 +142,8 @@ void ProcessMain(int servSock, char *ans) {
       DieWithError("failed to accept connection");
     pid = getpid();
     printf("[%d] accepted.\n", pid);
-    gameMaster(clntSock, ans, pid);
+    printf("[%d] Wordle : %s\n", pid, wordle);
+    gameMaster(clntSock, wordle, pid);
   }
 }
 

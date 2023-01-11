@@ -129,15 +129,15 @@ void gameIntro(int sock) {
     printf("    =                 WORDLE                 =\n");
     printf("    ==========================================\n\n");
     printf("    Guess the Wordle in limited tries.\n");
-    printf("\n    -----------------------------------------\n");
+    printf("\n    -----------------------------------------\n\n");
     printf("    Each guess must be a 5 letter word.\n");
     printf("    \"#\", \"/\", \"_\" will be shown for each letter.\n");
     printf("    \"#\" means the letter is in the right place.\n");
     printf("    \"/\" means the letter is in the Wordle.\n");
     printf("    \"_\" means the letter is not in the Wordle.\n\n");
-    printf("    You can quit the game by entering \"quit\".\n");
+    printf("    You can quit the game by entering \"quit\".\n\n");
     printf("    -----------------------------------------\n\n");
-    printf("    You can select how many tries you want (enter a number) : ");
+    printf("    How many tries? : ");
     while (1) {
       scanf("%s", &ans);
       if (strncmp(ans, "quit", 4) == 0) {

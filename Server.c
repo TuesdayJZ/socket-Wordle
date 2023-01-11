@@ -1,5 +1,5 @@
 // compile: gcc -w Server.c ServerLib.c -o Server
-// run: ./Server <port number> <number of players>
+// run: ./Server <port number> (<number of players> <-s or -d>)
 #include "ServerLib.h"
 
 #define BUFSIZE 5
@@ -10,77 +10,89 @@ int main(int argc, char *argv[]) {
   int clntSock; /* Socket descriptor for client */
   pid_t processID;
   int processCount, processLimit;
-  char ans[BUFSIZE];
+  char wordle[BUFSIZE];
+  int d;
 
-  if (argc > 3 || argc < 2) /* Test for correct number of arguments */ {
-    fprintf(stderr, "Usage: %s <Server Port> (<Number of Players>)\n", argv[0]);
+  if (argc > 4 || argc < 2) /* Test for correct number of arguments */ {
+    fprintf(stderr, "Usage: %s <Server Port> (<Number of Players> <-d>)\n",
+            argv[0]);
     exit(1);
   }
 
-  if(strtol(argv[1], NULL, 10) < 1){
+  if (strtol(argv[1], NULL, 10) < 1) {
     fprintf(stderr, "Server Port should be a number.\n");
     exit(1);
   }
 
   unsigned short ServPort = atoi(argv[1]); /* First arg: local port */
-  if (argc == 2) processLimit = 1;
+  if (argc == 2)
+    processLimit = 1;
   else {
-    if (strtol(argv[2], NULL, 10) < 1 || strtol(argv[2], NULL, 10) > MAXPLAYERS) {
-      fprintf(stderr, "Number of players should be posotive number below %d.\n", MAXPLAYERS);
+    d = 0;
+    if (strtol(argv[2], NULL, 10) < 1 ||
+        strtol(argv[2], NULL, 10) > MAXPLAYERS) {
+      fprintf(stderr, "Number of players should be posotive number below %d.\n",
+              MAXPLAYERS);
       exit(1);
     }
+    if (argc == 4) {
+      if (strcmp(argv[3], "-d") != 0) {
+        fprintf(stderr,
+                "Usage: %s <Server Port> (<Number of Players> <-d>)\nYou can "
+                "play with different Wordle by -d.\n",
+                argv[0]);
+        exit(1);
+      } else {
+        d = 1;
+      }
+    }
     processLimit = atoi(argv[2]);
-  } /* Second arg:  number of child processes */
+  }
 
   if ((servSock = CreateServerSocket(ServPort)) < 0)
     DieWithError("failed to create server socket");
 
-  printf("You can play with %d players.\n", processLimit);
-  printf("The server can be closed anytime by pressing Ctrl+C.\n\n");
+  if (argc > 3 && d == 0) {
+    printf("\nYou can play %d players with same Wordle.\n", processLimit);
+  } else if (argc > 3 && d == 1) {
+    printf("\nYou can play %d players with different Wordle.\n", processLimit);
+  }
+  printf("The server is ready to accept connections.\n\n");
 
   if (processLimit == 1) {
-    selectAns(ans);
-    printf("Wordle : %s\n\n", ans);
-    ProcessMain(servSock, ans);
+    selectWordle(wordle);
+    printf("Wordle : %s\n\n", wordle);
+    ProcessMain(servSock, wordle);
+    close(servSock);
     exit(EXIT_SUCCESS);
   }
 
-  printf("Do you want to play with the same Wordle? [Y/n] : ");
-
-  while (1) {
-    scanf("%s", ans);
-    if (strcmp(ans, "Y") != 0 && strcmp(ans, "y") != 0 && strcmp(ans, "N") != 0 && strcmp(ans, "n") != 0) {
-      printf("Enter Y/n : ");
-      continue;
-    } else {
-      break;
-    }
-  }
-  if (strcmp(ans, "Y") == 0 || strcmp(ans, "y") == 0) {
-    selectAns(ans);
-    printf("Wordle : %s\n\n", ans);
+  if (d == 0) {
+    selectWordle(wordle);
+    printf("Wordle : %s\n\n", wordle);
     for (processCount = 0; processCount < processLimit; processCount++) {
       if ((processID = fork()) < 0)
         DieWithError("fork() failed");
       else if (processID == 0) {  // child
-        ProcessMain(servSock, ans);
+        ProcessMain(servSock, wordle);
+        close(servSock);
         exit(EXIT_SUCCESS);
       }
     }
-    multi_wait(processCount);
+    multi_wait(processCount); // wait for all child processes
     exit(EXIT_SUCCESS);
-  } else if (strcmp(ans, "N") == 0 || strcmp(ans, "n") == 0) {
+  } else if (d == 1) {
     for (processCount = 0; processCount < processLimit; processCount++) {
       if ((processID = fork()) < 0)
         DieWithError("fork() failed");
       else if (processID == 0) {  // child
-        selectAns(ans);
-        printf("[player %d] Wordle : %s\n", processCount + 1, ans);
-        ProcessMain(servSock, ans);
+        selectWordle(wordle);
+        ProcessMain(servSock, wordle);
+        close(servSock);
         exit(EXIT_SUCCESS);
       }
     }
-    multi_wait(processCount);
+    multi_wait(processCount); // wait for all child processes
     exit(EXIT_SUCCESS);
   }
 }
