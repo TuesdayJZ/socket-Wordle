@@ -1,9 +1,3 @@
-#include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
-#include <stdio.h>      /* for perror() */
-#include <stdlib.h>     /* for exit() */
-#include <string.h>     /* for memset() */
-#include <sys/socket.h> /* for accept() */
-#include <unistd.h>     /* for close() */
 #include "ClientLib.h"
 
 #define MAXPENDING 5 /* Maximum outstanding connection requests */
@@ -12,7 +6,7 @@
 
 void DieWithError(char *errorMessage) {
   perror(errorMessage);
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
 int isAlp_toLower(char *str) {
@@ -58,15 +52,17 @@ void gamePlay(int sock) {
     AnsSize = strlen(sendBuffer);
     trial++;
     if(strncmp(sendBuffer, "quit", 4) == 0){
-      printf("\n        You quitted the game.\n\n");
-      close(sock);
-      exit(0);
-    } else if (isAlp_toLower(sendBuffer) != 0) {
-      printf("\n        Please enter ALPHABETs.\n");
-      trial--;
-      continue;
-    } else if (AnsSize != 5) {
-      printf("\n        Please enter a 5 letter word.\n");
+      if ((sendBuffer[4]<= 'z' && sendBuffer[4] >= 'a') || (sendBuffer[4] <= 'Z' && sendBuffer[4] >= 'A')) {
+        ;
+      } else {
+        printf("\n        You quitted the game.\n\n");
+        strncpy(sendBuffer, "\QUIT", 5);
+        if (sendMsgSize = send(sock, sendBuffer, AnsSize, 0) < 0)
+          DieWithError("send() failed");
+        exit(EXIT_SUCCESS);
+      }
+    } else if (isAlp_toLower(sendBuffer) != 0 || AnsSize != BUFSIZE) {
+      printf("\n        Please enter 5 ALPHABETs.\n");
       trial--;
       continue;
     } else {
@@ -98,7 +94,7 @@ void gamePlay(int sock) {
         DieWithError("recv() failed");
       printf("        The Wordle is \"%s\".\n\n", recvBuffer);
       close(sock);
-      exit(0);
+      exit(EXIT_SUCCESS);
     }
     for (int i = 0; i < 5; i++) {
       if (recvBuffer[i] == 'H') {
@@ -108,7 +104,7 @@ void gamePlay(int sock) {
           printf("\n    ==========================================\n");
           printf("\n        YOU WIN in %d try :)\n\n", trial - 1);
           close(sock);
-          exit(0);
+          exit(EXIT_SUCCESS);
         }
       }
     }
@@ -138,7 +134,11 @@ void gameIntro(int sock){
       printf("    You can select how many tries you want (enter a number) : ");
       while(1){
         scanf("%s", &ans);
-        if (strtoll(ans, NULL, 10) > 9 || strtoll(ans, NULL, 10) < 1) {
+        if (strncmp(ans, "quit", 4) == 0) {
+          printf("\n        You quitted the game.\n\n");
+          exit(EXIT_SUCCESS);
+        }
+        else if (strtoll(ans, NULL, 10) > 9 || strtoll(ans, NULL, 10) < 1) {
           printf("    Please input a number (1 to 9) : ");
           continue;
         }
@@ -151,7 +151,7 @@ void gameIntro(int sock){
     } else if (ans[0] == 'n' || ans[0] == 'N') {
       printf("    OK, bye.\n");
       close(sock);
-      exit(0);
+      exit(EXIT_SUCCESS);
     } else {
       printf("    please input y or n.\n");
       continue;

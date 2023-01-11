@@ -1,10 +1,3 @@
-#include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
-#include <stdio.h>      /* for perror() */
-#include <stdlib.h>     /* for exit() */
-#include <string.h>     /* for memset() */
-#include <sys/socket.h> /* for accept() */
-#include <unistd.h>     /* for close() */
-#include <sys/time.h>
 #include "ServerLib.h"
 
 #define MAXPENDING 5  /* Maximum outstanding connection requests */
@@ -70,8 +63,14 @@ void gameMaster(int sock, char *ans, int pid) {
       DieWithError("recv() failed");
     if (recvMsgSize == 0) {
       printf("connection closed by client\n");
-      exit(0);
+      exit(EXIT_SUCCESS);
     }
+    if (strncmp(recvBuffer, "\QUIT", 5) == 0) {
+      printf("GAME END (QUIT)\n");
+      close(sock);
+      exit(EXIT_SUCCESS);
+    }
+    printf("[%d] recv: %s\n", pid, recvBuffer);
     // judge hit & blow
     strncpy(copyAns, ans, BUFSIZE);
     for (int i = 0; i < BUFSIZE; i++) sendBuffer[i] = '_';
@@ -103,13 +102,13 @@ void gameMaster(int sock, char *ans, int pid) {
         DieWithError("send() failed");
       printf("[%d] GAME END (LOSE)\n", pid);
       close(sock);
-      exit(0);
+      exit(EXIT_SUCCESS);
     }else if(strncmp(sendBuffer, "HHHHH", BUFSIZE) == 0){ // win
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
       printf("[%d] GAME END (WIN)\n", pid);
       close(sock);
-      exit(0);
+      exit(EXIT_SUCCESS);
     }else{
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
         DieWithError("send() failed");
@@ -142,7 +141,22 @@ void ProcessMain(int servSock, char *ans) {
     if ((clntSock = AcceptConnection(servSock)) < 0)
       DieWithError("failed to accept connection");
     pid = getpid();
-    printf("with child process: %d\n", pid);
+    printf("with process: %d\n", pid);
     gameMaster(clntSock, ans, pid);
+  }
+}
+
+void multi_wait(int processCount){
+  while(1){
+    pid_t pid;
+    int status = 0;
+    pid = wait(&status);
+    if (pid < 0) {
+      if (errno == ECHILD) break;
+      else if (errno == EINTR)
+        continue;
+      DieWithError("wait error");
+    }
+    printf("[%d] terminated.\nremaining process: %d\n", pid, --processCount);
   }
 }

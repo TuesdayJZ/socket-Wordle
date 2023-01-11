@@ -33,5 +33,5 @@ int main(int argc, char *argv[]){
   gameIntro(sock);
   gamePlay(sock);
   close(sock);
-  exit(0);
+  exit(EXIT_SUCCESS);
 }

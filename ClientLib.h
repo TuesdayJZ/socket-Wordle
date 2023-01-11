@@ -6,3 +6,7 @@
 #include <unistd.h>     /* for close() */
 
 void DieWithError(char *errorMessage); /* Error handling function */
+int isAlp_toLower(char *str);
+void readWords(char **words);
+void gamePlay(int sock);
+void gameIntro(int sock);
