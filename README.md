@@ -25,4 +25,4 @@
 
 ## reference
 
-thanks to <https://github.com/tabatkins/wordle-list.git> for words.txt
+"words.txt" is borrowed from <https://github.com/tabatkins/wordle-list.git>
