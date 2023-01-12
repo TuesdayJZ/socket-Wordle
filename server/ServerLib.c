@@ -123,7 +123,7 @@ void gameMaster(int sock, char *wordle, pid_t pid, char **words) {
 
     // send "00000" if it's not a word
     if (strncmp(sendBuffer, "00000", BUFSIZE) == 0) {
-      printf("                           : NOTaWORD\n\n");
+      printf("                          NOTaWORD\n\n");
     if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
       DieWithError("send() failed");
     continue;  // try again
