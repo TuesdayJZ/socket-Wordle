@@ -5,7 +5,7 @@
 - the rules are the same as for regular Wordle.
 
 - Wordle is randomly selected from "words.txt" file by the server.
-  
+
 - you can choose the number of trials (1 - 9).
 
 ## How to run these server and client
@@ -22,3 +22,7 @@
 4. run, "./Client [server IP] [port number]"
 
    - server will timeout if no client is connected in 30 seconds
+
+## reference
+
+thanks to <https://github.com/tabatkins/wordle-list.git> for words.txt
