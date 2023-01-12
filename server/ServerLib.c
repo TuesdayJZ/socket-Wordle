@@ -84,7 +84,7 @@ void gameMaster(int sock, char *wordle, pid_t pid, char **words) {
 
     // client entered "quit"
     if (strncmp(recvBuffer, "\QUIT", 5) == 0) {
-      printf("GAME END (QUIT)\n\n");
+      printf("[%d] GAME END (QUIT)\n\n", pid);
       close(sock);
       exit(EXIT_SUCCESS);
     }
