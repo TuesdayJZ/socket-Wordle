@@ -36,19 +36,33 @@ int AcceptConnection(int servSock) {
   int clntSock;                /* Socket descriptor for client */
   struct sockaddr_in ClntAddr; /* Client address */
   unsigned int clntLen;        /* Length of client address data structure */
+  fd_set fds;                  /* for select() */
+  struct timeval timeout;      /* for select() */
 
   /* Set the size of the in-out parameter */
   clntLen = sizeof(ClntAddr);
+
+  FD_ZERO(&fds);
+  FD_SET(servSock, &fds);
+  timeout.tv_sec = 30;
+  timeout.tv_usec = 0;
+
+  /* if no connection request within 60 seconds, exit */
+  if (select(servSock + 1, &fds, NULL, NULL, &timeout) == 0){
+    printf("[%d] Timeout.\n\n", getpid());
+    close(servSock);
+    exit(EXIT_SUCCESS);
+  }
 
   /* Wait for a client to connect */
   if ((clntSock = accept(servSock, (struct sockaddr *)&ClntAddr, &clntLen)) < 0)
     DieWithError("accept() failed");
 
-  printf("Handling client %s\n", inet_ntoa(ClntAddr.sin_addr));
+  printf("[%d] Handling client : %s\n\n", getpid(), inet_ntoa(ClntAddr.sin_addr));
   return clntSock;
 }
 
-void gameMaster(int sock, char *wordle, int pid, char **words) {
+void gameMaster(int sock, char *wordle, pid_t pid, char **words) {
   int trial = 1;
   char recvBuffer[BUFSIZE], sendBuffer[BUFSIZE], copywordle[BUFSIZE];
   int recvMsgSize, sendMsgSize;
@@ -76,7 +90,7 @@ void gameMaster(int sock, char *wordle, int pid, char **words) {
     }
 
     // print received word
-    printf("[%d] (trial %d) received: %.5s\n", pid,trial, recvBuffer);
+    printf("[%d] (trial %d) received : %.5s\n\n", pid,trial, recvBuffer);
 
     // check if it's a word
     for (int i = 0; i < WORDS; i++){
@@ -109,9 +123,10 @@ void gameMaster(int sock, char *wordle, int pid, char **words) {
 
     // send "00000" if it's not a word
     if (strncmp(sendBuffer, "00000", BUFSIZE) == 0) {
-      if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
-        DieWithError("send() failed");
-      continue; // try again
+      printf("                           : NOTaWORD\n\n");
+    if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
+      DieWithError("send() failed");
+    continue;  // try again
     }
 
     // if it's a word, send hit & blow
@@ -126,13 +141,13 @@ void gameMaster(int sock, char *wordle, int pid, char **words) {
         DieWithError("send() failed");
       if (sendMsgSize = send(sock, wordle, BUFSIZE, 0) < 0) // send wordle
         DieWithError("send() failed");
-      printf("[%d] GAME END (LOSE)\n", pid);
+      printf("[%d] GAME END (LOSE)\n\n", pid);
       close(sock);
       exit(EXIT_SUCCESS);
     } else if (strncmp(sendBuffer, "#####", BUFSIZE) == 0) {  // win
       if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0) // send hit & blow
         DieWithError("send() failed");
-      printf("[%d] GAME END (WIN)\n", pid);
+      printf("[%d] GAME END (WIN)\n\n", pid);
       close(sock);
       exit(EXIT_SUCCESS);
     } else { // continue game
@@ -169,14 +184,15 @@ void readWords(char **words) {
 
 void ProcessMain(int servSock, char *wordle, char **words) {
   // each child process runs this
-  int clntSock, pid;
+  int clntSock;
+  pid_t pid;
   while (1) {
-    printf("waiting connection ...\n");
+    pid = getpid();
+    printf("[%d] waiting connection ...\n\n", pid);
     if ((clntSock = AcceptConnection(servSock)) < 0)
       DieWithError("failed to accept connection");
-    pid = getpid();
-    printf("[%d] accepted.\n", pid);
-    printf("[%d] Wordle : %s\n", pid, wordle);
+    printf("[%d] accepted.\n\n", pid);
+    printf("[%d] Wordle : %s\n\n", pid, wordle);
     gameMaster(clntSock, wordle, pid, words);
   }
 }
@@ -195,6 +211,6 @@ void multi_wait(int processCount){
     }
     --processCount;
     printf("[%d] terminated.\n\n", pid);
-    if (processCount == 0) printf("All process terminated.\n");
+    if (processCount <= 0) printf("All process terminated.\n");
   }
 }

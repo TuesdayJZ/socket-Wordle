@@ -37,8 +37,9 @@ void gamePlay(int sock) {
       } else {
         printf("\n        You quitted the game.\n\n");
         strncpy(sendBuffer, "\QUIT", 5);
-        if (sendMsgSize = send(sock, sendBuffer, AnsSize, 0) < 0)
+        if (sendMsgSize = send(sock, sendBuffer, BUFSIZE, 0) < 0)
           DieWithError("send() failed");
+        close(sock);
         exit(EXIT_SUCCESS);
       }
     } else if (isAlp_toLower(sendBuffer) != 0 || AnsSize != BUFSIZE) {
@@ -58,7 +59,7 @@ void gamePlay(int sock) {
     if (strncmp(recvBuffer, "_LOSE", 5) == 0) {
       if (recvMsgSize = recv(sock, recvBuffer, 5, 0) < 0)
         DieWithError("recv() failed");
-      printf("                              [ %s ]\n", recvBuffer);
+      printf("\n                              [ %s ]\n", recvBuffer);
       printf("\n    ==========================================\n");
       printf("\n        YOU LOSE :(\n\n");
       if (recvMsgSize = recv(sock, recvBuffer, 5, 0) < 0)
@@ -71,7 +72,7 @@ void gamePlay(int sock) {
       if (recvBuffer[i] == '#') {
         hit++;
         if (hit == 5) {
-          printf("                              [ %s ]\n", recvBuffer);
+          printf("\n                              [ %s ]\n", recvBuffer);
           printf("\n    ==========================================\n");
           printf("\n        YOU WIN in %d try :)\n\n", trial - 1);
           printf("        The Wordle is \"%.5s\".\n\n", sendBuffer);
@@ -80,7 +81,7 @@ void gamePlay(int sock) {
         }
       }
     }
-    printf("                              [ %s ]\n", recvBuffer);
+    printf("\n                              [ %s ]\n", recvBuffer);
     hit = 0;
   }
 }
@@ -114,6 +115,7 @@ void gameIntro(int sock) {
       scanf("%s", &ans);
       if (strncmp(ans, "quit", 4) == 0) {
         printf("\n        You quitted the game.\n\n");
+        close(sock);
         exit(EXIT_SUCCESS);
       } else if (strtoll(ans, NULL, 10) > 9 || strtoll(ans, NULL, 10) < 1) {
         printf("    Please input a number (1 to 9) : ");

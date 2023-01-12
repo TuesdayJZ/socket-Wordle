@@ -67,7 +67,6 @@ int main(int argc, char *argv[]) {
   // single player mode
   if (processLimit == 1) {
     selectWordle(wordle, words);
-    printf("Wordle : %s\n\n", wordle);
     ProcessMain(servSock, wordle, words);
     close(servSock);
     exit(EXIT_SUCCESS);
@@ -76,7 +75,6 @@ int main(int argc, char *argv[]) {
   // multi player mode
   if (d == 0) { // players play with the same Wordle
     selectWordle(wordle, words);
-    printf("Wordle : %s\n\n", wordle);
     for (processCount = 0; processCount < processLimit; processCount++) {
       if ((processID = fork()) < 0)
         DieWithError("fork() failed");
