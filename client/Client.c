@@ -28,43 +28,20 @@ int main(int argc, char *argv[]){
   /* Establish the connection to the server */
   printf("\n    trying to connect to the game server...\n");
 
-  // set socket to non-blocking
-  int flag = fcntl(sock, F_GETFL);
-  if (flag < 0)
-    DieWithError("fcntl() failed");
-  if (fcntl(sock, F_SETFL, flag | O_NONBLOCK) < 0)
-    DieWithError("fcntl() failed");
-
-  // connect
-  int connectresult = connect(sock, (struct sockaddr *) &ServAddr, sizeof(ServAddr));
-  if (connectresult < 0) { // connect failed
-    if (errno == EINPROGRESS) errno = 0; // ignore EINPROGRESS
-    else{
-      fcntl(sock, F_SETFL, flag);
-      DieWithError("connect() failed");
-    }
-  }
-
-  // set socket back to blocking
-  if(fcntl(sock, F_SETFL, flag) < 0)
-    DieWithError("fcntl() failed");
-
-  // select to check if socket is ready
-  fd_set readfd, writefd;
-  FD_ZERO(&readfd);
-  FD_ZERO(&writefd);
-  FD_SET(sock, &readfd);
-  FD_SET(sock, &writefd);
-
-  // timeout : 5 sec
   struct timeval timeout;
   timeout.tv_sec = 5;
   timeout.tv_usec = 0;
-  int selectresult = select(sock + 1, &readfd, &writefd, NULL, &timeout);
-  if (selectresult == 0) // timeout
-    DieWithError("select() failed... timeout");
-  else if(!FD_ISSET(sock, &readfd) && !FD_ISSET(sock, &writefd)) /* socket can't read and write */
-    DieWithError("select() failed");
+
+  setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
+  // connect
+  if (connect(sock, (struct sockaddr *)&ServAddr, sizeof(ServAddr)) < 0) {
+    if (errno != EINPROGRESS)
+      DieWithError("connect() failed");
+    else {
+      printf("    connection timed out.\n\n");
+      exit(EXIT_SUCCESS);
+    }
+  }
   printf("    connected!\n\n");
   gameIntro(sock);
   gamePlay(sock);

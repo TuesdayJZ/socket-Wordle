@@ -4,7 +4,6 @@
 #include <string.h>     /* for memset() */
 #include <sys/socket.h> /* for socket(), bind(), and connect() */
 #include <unistd.h>     /* for close() */
-#include <fcntl.h>      /* for fcntl() */
 #include <errno.h>      /* for errno */
 
 #define MAXPENDING 5 /* Maximum outstanding connection requests */

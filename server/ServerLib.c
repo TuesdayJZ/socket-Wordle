@@ -47,16 +47,18 @@ int AcceptConnection(int servSock) {
   timeout.tv_sec = 30;
   timeout.tv_usec = 0;
 
-  /* if no connection request within 60 seconds, exit */
-  if (select(servSock + 1, &fds, NULL, NULL, &timeout) == 0){
-    printf("[%d] Timeout.\n\n", getpid());
-    close(servSock);
-    exit(EXIT_SUCCESS);
-  }
+  /* if no connection request within 30 seconds, exit */
+  setsockopt(servSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
   /* Wait for a client to connect */
-  if ((clntSock = accept(servSock, (struct sockaddr *)&ClntAddr, &clntLen)) < 0)
-    DieWithError("accept() failed");
+  if ((clntSock = accept(servSock, (struct sockaddr *)&ClntAddr, &clntLen)) < 0){
+    if (errno == EWOULDBLOCK) {
+      printf("[%d] Timeout.\n\n", getpid());
+      exit(EXIT_SUCCESS);
+    } else {
+      DieWithError("accept() failed");
+    }
+  }
 
   printf("[%d] Handling client : %s\n\n", getpid(), inet_ntoa(ClntAddr.sin_addr));
   return clntSock;

@@ -110,7 +110,7 @@ void gameIntro(int sock) {
     printf("    _ means the letter is not in the Wordle.\n\n");
     printf("    You can quit the game by entering \"quit\".\n\n");
     printf("    -----------------------------------------\n\n");
-    printf("    How many tries? : ");
+    printf("    How many trials? : ");
     while (1) {
       scanf("%s", &ans);
       if (strncmp(ans, "quit", 4) == 0) {
